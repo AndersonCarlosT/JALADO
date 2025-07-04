@@ -13,6 +13,9 @@ if excel_file and codigo_input:
         df = pd.read_excel(excel_file, usecols=[0, 1, 2])
         df.columns = ["Código", "Fecha", "Precio"]
 
+        # ✅ Formatear la fecha como DD/MM/YYYY
+        df["Fecha"] = pd.to_datetime(df["Fecha"]).dt.strftime("%d/%m/%Y")
+
         resultado = df[df["Código"].astype(str) == codigo_input.strip()]
         
         if not resultado.empty:
