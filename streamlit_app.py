@@ -1,32 +1,36 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="📄 Buscador en archivo Excel", layout="centered")
-st.title("🔍 Buscar datos por Código en Excel")
+st.set_page_config(page_title="📄 Buscar Código en múltiples Excels", layout="centered")
+st.title("🔍 Buscar datos por Código en múltiples archivos Excel")
 
-excel_file = st.file_uploader("Sube un archivo Excel", type=["xlsx"])
-
+excel_files = st.file_uploader("📂 Sube uno o más archivos Excel", type=["xlsx"], accept_multiple_files=True)
 codigo_input = st.text_input("🔢 Ingresa el Código a buscar (número exacto):")
 
-if excel_file and codigo_input:
-    try:
-        df = pd.read_excel(excel_file, usecols=[0, 1, 2])
-        df.columns = ["Código", "Fecha", "Precio"]
+if excel_files and codigo_input:
+    resultados = []
 
-        # ⛔️ Ignorar filas donde la fecha no es válida
-        df["Fecha"] = pd.to_datetime(df["Fecha"], errors='coerce')
-        df = df.dropna(subset=["Fecha"])
+    for file in excel_files:
+        try:
+            df = pd.read_excel(file, usecols=[0, 1, 2])
+            df.columns = ["Código", "Fecha", "Precio"]
 
-        # ✅ Formatear la fecha como DD/MM/YYYY
-        df["Fecha"] = df["Fecha"].dt.strftime("%d/%m/%Y")
+            # Convertir fechas correctamente
+            df["Fecha"] = pd.to_datetime(df["Fecha"], errors='coerce')
+            df = df.dropna(subset=["Fecha"])
+            df["Fecha"] = df["Fecha"].dt.strftime("%d/%m/%Y")
 
-        resultado = df[df["Código"].astype(str) == codigo_input.strip()]
-        
-        if not resultado.empty:
-            st.success("✅ Código encontrado:")
-            st.dataframe(resultado)
-        else:
-            st.warning("⚠ No se encontró ese código en el archivo.")
+            # Buscar coincidencias
+            coincidencias = df[df["Código"].astype(str) == codigo_input.strip()]
+            if not coincidencias.empty:
+                resultados.append(coincidencias)
 
-    except Exception as e:
-        st.error(f"❌ Error leyendo el archivo: {str(e)}")
+        except Exception as e:
+            st.error(f"❌ Error con el archivo {file.name}: {str(e)}")
+
+    if resultados:
+        final_df = pd.concat(resultados, ignore_index=True)
+        st.success("✅ Código encontrado:")
+        st.dataframe(final_df[["Código", "Fecha", "Precio"]])
+    else:
+        st.warning("⚠ No se encontró el código en ningún archivo.")
