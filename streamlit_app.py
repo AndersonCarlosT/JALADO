@@ -1,36 +1,43 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="📄 Buscar Código en múltiples Excels", layout="centered")
-st.title("🔍 Buscar datos por Código en múltiples archivos Excel")
+st.set_page_config(page_title="📄 Buscar múltiples códigos en Excels", layout="centered")
+st.title("🔍 Buscar múltiples códigos en archivos Excel")
 
 excel_files = st.file_uploader("📂 Sube uno o más archivos Excel", type=["xlsx"], accept_multiple_files=True)
-codigo_input = st.text_input("🔢 Ingresa el Código a buscar (número exacto):")
 
-if excel_files and codigo_input:
-    resultados = []
+codigos_input = st.text_area("🔢 Ingresa uno o más códigos separados por coma o salto de línea:")
 
-    for file in excel_files:
-        try:
-            df = pd.read_excel(file, usecols=[0, 1, 2])
-            df.columns = ["Código", "Fecha", "Precio"]
-
-            # Convertir fechas correctamente
-            df["Fecha"] = pd.to_datetime(df["Fecha"], errors='coerce')
-            df = df.dropna(subset=["Fecha"])
-            df["Fecha"] = df["Fecha"].dt.strftime("%d/%m/%Y")
-
-            # Buscar coincidencias
-            coincidencias = df[df["Código"].astype(str) == codigo_input.strip()]
-            if not coincidencias.empty:
-                resultados.append(coincidencias)
-
-        except Exception as e:
-            st.error(f"❌ Error con el archivo {file.name}: {str(e)}")
-
-    if resultados:
-        final_df = pd.concat(resultados, ignore_index=True)
-        st.success("✅ Código encontrado:")
-        st.dataframe(final_df[["Código", "Fecha", "Precio"]])
+if excel_files and codigos_input:
+    # Limpieza y conversión de los códigos ingresados
+    codigos = [c.strip() for c in codigos_input.replace(",", "\n").splitlines() if c.strip()]
+    
+    if not codigos:
+        st.warning("⚠ Por favor, ingresa al menos un código válido.")
     else:
-        st.warning("⚠ No se encontró el código en ningún archivo.")
+        resultados = []
+
+        for file in excel_files:
+            try:
+                df = pd.read_excel(file, usecols=[0, 1, 2])
+                df.columns = ["Código", "Fecha", "Precio"]
+
+                # Formatear fechas
+                df["Fecha"] = pd.to_datetime(df["Fecha"], errors='coerce')
+                df = df.dropna(subset=["Fecha"])
+                df["Fecha"] = df["Fecha"].dt.strftime("%d/%m/%Y")
+
+                # Filtrar solo los códigos que el usuario ingresó
+                coincidencias = df[df["Código"].astype(str).isin(codigos)]
+                if not coincidencias.empty:
+                    resultados.append(coincidencias)
+
+            except Exception as e:
+                st.error(f"❌ Error con el archivo {file.name}: {str(e)}")
+
+        if resultados:
+            final_df = pd.concat(resultados, ignore_index=True)
+            st.success("✅ Resultados encontrados:")
+            st.dataframe(final_df[["Código", "Fecha", "Precio"]])
+        else:
+            st.warning("⚠ No se encontraron coincidencias en ningún archivo.")
