@@ -13,8 +13,12 @@ if excel_file and codigo_input:
         df = pd.read_excel(excel_file, usecols=[0, 1, 2])
         df.columns = ["Código", "Fecha", "Precio"]
 
+        # ⛔️ Ignorar filas donde la fecha no es válida
+        df["Fecha"] = pd.to_datetime(df["Fecha"], errors='coerce')
+        df = df.dropna(subset=["Fecha"])
+
         # ✅ Formatear la fecha como DD/MM/YYYY
-        df["Fecha"] = pd.to_datetime(df["Fecha"]).dt.strftime("%d/%m/%Y")
+        df["Fecha"] = df["Fecha"].dt.strftime("%d/%m/%Y")
 
         resultado = df[df["Código"].astype(str) == codigo_input.strip()]
         
